@@ -20,6 +20,8 @@ dependencies {
 
     // This dependency is used by Jetpack Compose for Desktop.
     implementation(compose.desktop.currentOs)
+    implementation(compose.materialIconsExtended)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 }
@@ -37,7 +39,7 @@ java {
 
 compose.desktop {
     application {
-        mainClass = "AppKt"
+        mainClass = "MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Exe)
