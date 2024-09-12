@@ -8,12 +8,15 @@ import kotlinx.coroutines.launch
 import providers.LocalResources
 import window.TextEditorWindow
 
+// Компонент с самым главным в приложении - окнами
 @Composable
 fun ApplicationScope.TextEditorApp(state: TextEditorAppState) {
-    if (state.settings.isTrayEnabled && state.windows.isNotEmpty()) {
+    // Если включен трей и есть открытые окна, отображаем трей
+    if (state.traySettings.isTrayEnabled && state.windows.isNotEmpty()) {
         ApplicationTray(state)
     }
 
+    // Для каждого окна в состоянии приложения создаем компонент TextEditorWindow
     for (window in state.windows) {
         key(window) {
             TextEditorWindow(window)
@@ -21,16 +24,19 @@ fun ApplicationScope.TextEditorApp(state: TextEditorAppState) {
     }
 }
 
+// Компонент трея приложения
 @Composable
 private fun ApplicationScope.ApplicationTray(state: TextEditorAppState) {
+    // Создаем трей с иконкой, состоянием и меню
     Tray(
         LocalResources.current.icon,
-        state = state.tray,
-        tooltip = "Notepad",
+        state = state.trayState,
+        tooltip = "Текстовый редактор",
         menu = { ApplicationMenu(state) }
     )
 }
 
+// Компонент с меню приложения для управления им
 @Composable
 private fun MenuScope.ApplicationMenu(state: TextEditorAppState) {
     val scope = rememberCoroutineScope()
