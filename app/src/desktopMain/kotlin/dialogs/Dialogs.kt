@@ -2,9 +2,17 @@ package dialogs
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.*
+import androidx.compose.material.Button
+import androidx.compose.material.Checkbox
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.*
-import androidx.compose.ui.window.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.window.AwtWindow
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.FrameWindowScope
+import androidx.compose.ui.window.WindowScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -97,6 +105,7 @@ fun WindowScope.YesNoCancelDialog(
         }
     }
 }
+
 @Composable
 fun SearchDialog(
     onSearch: (query: String) -> Unit,
@@ -109,7 +118,8 @@ fun SearchDialog(
             Text("Введите текст для поиска:")
             TextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it }
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.testTag("searchTextField")
             )
             Row {
                 Button(onClick = { onSearch(searchQuery) }) {
@@ -138,20 +148,22 @@ fun ReplaceDialog(
             Text("Введите текст для замены:")
             TextField(
                 value = replaceQuery,
-                onValueChange = { replaceQuery = it }
+                onValueChange = { replaceQuery = it },
+                modifier = Modifier.testTag("replaceTextField") // Добавляем testTag для поля ввода
             )
             Row {
-                Button(onClick = { onReplace(replaceQuery, replaceAll) }) {
+                Button(onClick = { onReplace(replaceQuery, replaceAll) }, modifier = Modifier.testTag("replaceButton")) {
                     Text("Заменить")
                 }
-                Button(onClick = { onCancel() }) {
+                Button(onClick = { onCancel() }, modifier = Modifier.testTag("cancelButton")) {
                     Text("Отмена")
                 }
             }
             Row {
                 Checkbox(
                     checked = replaceAll,
-                    onCheckedChange = { replaceAll = it }
+                    onCheckedChange = { replaceAll = it },
+                    modifier = Modifier.testTag("replaceAllCheckbox")
                 )
                 Text("Заменить все")
             }
@@ -172,20 +184,22 @@ fun HighlightSearchDialog(
             Text("Введите текст для поиска:")
             TextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it }
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.testTag("highlightSearchTextField") // Добавляем testTag для поля ввода
             )
             Row {
-                Button(onClick = { onSearch(searchQuery, ignoreCase) }) {
+                Button(onClick = { onSearch(searchQuery, ignoreCase) }, modifier = Modifier.testTag("searchButton")) {
                     Text("Поиск")
                 }
-                Button(onClick = { onCancel() }) {
+                Button(onClick = { onCancel() }, modifier = Modifier.testTag("cancelButton")) {
                     Text("Отмена")
                 }
             }
             Row {
                 Checkbox(
                     checked = ignoreCase,
-                    onCheckedChange = { ignoreCase = it }
+                    onCheckedChange = { ignoreCase = it },
+                    modifier = Modifier.testTag("ignoreCaseCheckbox") // Добавляем testTag для чекбокса
                 )
                 Text("Игнорировать регистр")
             }
