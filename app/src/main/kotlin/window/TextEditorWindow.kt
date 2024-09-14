@@ -1,16 +1,20 @@
 package window
 
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
-import dialogs.FileDialog
-import dialogs.YesNoCancelDialog
+import dialogs.*
 import kotlinx.coroutines.launch
 import providers.LocalResources
+import javax.swing.JOptionPane
 
 /**
  * Главное окно текстового редактора
@@ -37,37 +41,105 @@ fun TextEditorWindow(state: TextEditorWindowState) {
         // Вызываем обработчики уведомлений и меню
         WindowNotifications(state)
         WindowMenuBar(state)
+        Column {
+            BasicTextField(
+                value = state.text,
+                onValueChange = { newValue ->
+                    state.text = newValue // Обновляем содержимое текста
+                    state.clearHighlight() // Очищаем подсветку при изменении текста
+                },
+                enabled = state.isInit,
+                modifier = Modifier.fillMaxWidth(),
+                visualTransformation = HighlightTransformation(state.text, state.highlightedIndices, state.searchQuery.length)
+            )
 
-        // Этот composable используется для показа базового поля редактора текста
-        BasicTextField(
-            state.text,
-            state::text::set,
-            enabled = state.isInit,
-            modifier = Modifier.fillMaxSize()
-        )
+            Spacer(modifier = Modifier.height(16.dp))
 
+            val scope = rememberCoroutineScope()
 
-        when {
-            state.openDialog.isAwaiting -> {
-                FileDialog(
-                    title = "Текстовый редактор",
-                    isLoad = true,
-                    onResult = { state.openDialog.onResult(it) }
-                )
-            }
-            state.saveDialog.isAwaiting -> {
-                FileDialog(
-                    title = "Текстовый редактор",
-                    isLoad = false,
-                    onResult = { state.saveDialog.onResult(it) }
-                )
-            }
-            state.exitDialog.isAwaiting -> {
-                YesNoCancelDialog(
-                    title = "Текстовый редактор",
-                    message = "Сохранить изменения?",
-                    onResult = { state.exitDialog.onResult(it) }
-                )
+            when {
+                state.openDialog.isAwaiting -> {
+                    FileDialog(
+                        title = "Текстовый редактор",
+                        isLoad = true,
+                        onResult = { state.openDialog.onResult(it) }
+                    )
+                }
+
+                state.saveDialog.isAwaiting -> {
+                    FileDialog(
+                        title = "Текстовый редактор",
+                        isLoad = false,
+                        onResult = { state.saveDialog.onResult(it) }
+                    )
+                }
+
+                state.exitDialog.isAwaiting -> {
+                    YesNoCancelDialog(
+                        title = "Текстовый редактор",
+                        message = "Сохранить изменения?",
+                        onResult = { state.exitDialog.onResult(it) }
+                    )
+                }
+
+                state.searchDialog.isAwaiting -> {
+                    SearchDialog(
+                        onSearch = { query ->
+                            scope.launch {
+                                state.search(query)
+                                state.searchDialog.onResult(Unit) // Закрываем диалог поиска
+                                if (state.searchResults.isNotEmpty()) {
+                                    state.clearHighlight()
+
+                                    state.replaceDialog.awaitResult() // Открываем диалог замены, если найдены совпадения
+                                } else {
+                                    JOptionPane.showMessageDialog(null, "Совпадения не найдены")
+                                }
+                            }
+                        },
+                        onCancel = { state.searchDialog.onResult(Unit) }
+                    )
+                }
+
+                state.replaceDialog.isAwaiting -> {
+                    ReplaceDialog(
+                        foundCount = state.searchResults.size,
+                        onReplace = { replaceWith, replaceAll ->
+                            scope.launch {
+                                state.replace(replaceWith, replaceAll)
+                                state.replaceDialog.onResult(Unit) // Закрываем диалог замены
+                            }
+                        },
+                        onCancel = { state.replaceDialog.onResult(Unit) }
+                    )
+                }
+
+                state.searchHighlightDialog.isAwaiting -> {
+                    HighlightSearchDialog(
+                        onSearch = { query, ignoreCase ->
+                            scope.launch {
+                                state.searchAndHighlight(query, ignoreCase)
+                                // Показываем информационное окно с количеством совпадений
+                                state.showMatchCountDialog()
+                                state.searchHighlightDialog.onResult(Unit) // Закрываем диалог
+                            }
+                        },
+                        onCancel = { state.searchHighlightDialog.onResult(Unit) }
+                    )
+                }
+
+                state.isMatchCountDialogVisible -> {
+                    AlertDialog(
+                        onDismissRequest = { state.dismissMatchCountDialog() },
+                        title = { Text("Результаты поиска") },
+                        text = { Text("Найдено совпадений: ${state.highlightedIndices.size}") },
+                        confirmButton = {
+                            Button(onClick = { state.dismissMatchCountDialog() }) {
+                                Text("ОК")
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -122,6 +194,8 @@ private fun FrameWindowScope.WindowMenuBar(state: TextEditorWindowState) = MenuB
     fun save() = scope.launch { state.save() }
     fun open() = scope.launch { state.open() }
     fun exit() = scope.launch { state.exit() }
+    fun searchAndReplace() = scope.launch { state.searchAndReplace() }
+    fun searchAndHighlight() = scope.launch { state.searchAndHighlight() }
 
     Menu("Файл") {
         Item("Новое окно", onClick = state::newWindow)
@@ -129,5 +203,10 @@ private fun FrameWindowScope.WindowMenuBar(state: TextEditorWindowState) = MenuB
         Item("Сохранить", onClick = { save() }, enabled = state.isChanged || state.path == null)
         Separator()
         Item("Выход", onClick = { exit() })
+    }
+
+    Menu("Редактирование файла") {
+        Item("Найти", onClick = { searchAndHighlight() })
+        Item("Найти и заменить", onClick = { searchAndReplace() })
     }
 }

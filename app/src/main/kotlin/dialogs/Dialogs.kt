@@ -1,10 +1,10 @@
 package dialogs
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.window.AwtWindow
-import androidx.compose.ui.window.FrameWindowScope
-import androidx.compose.ui.window.WindowScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.window.*
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -44,6 +44,8 @@ fun FrameWindowScope.FileDialog(
                 // Если юзер выбрал файл, то передаем его в коллбэк
                 if (value) {
                     if (file != null) {
+                        if (!file.endsWith(".txt")) file += ".txt"
+
                         onResult(File(directory).resolve(file).toPath())
                     } else {
                         onResult(null)
@@ -92,6 +94,101 @@ fun WindowScope.YesNoCancelDialog(
         // Не забываем отменять корутину при уничтожении компонента
         onDispose {
             job.cancel()
+        }
+    }
+}
+@Composable
+fun SearchDialog(
+    onSearch: (query: String) -> Unit,
+    onCancel: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = { onCancel() }) {
+        Column {
+            Text("Введите текст для поиска:")
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it }
+            )
+            Row {
+                Button(onClick = { onSearch(searchQuery) }) {
+                    Text("Найти")
+                }
+                Button(onClick = { onCancel() }) {
+                    Text("Отмена")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReplaceDialog(
+    foundCount: Int,
+    onReplace: (replaceWith: String, replaceAll: Boolean) -> Unit,
+    onCancel: () -> Unit
+) {
+    var replaceQuery by remember { mutableStateOf("") }
+    var replaceAll by remember { mutableStateOf(true) }
+
+    Dialog(onDismissRequest = { onCancel() }) {
+        Column {
+            Text("Найдено совпадений: $foundCount")
+            Text("Введите текст для замены:")
+            TextField(
+                value = replaceQuery,
+                onValueChange = { replaceQuery = it }
+            )
+            Row {
+                Button(onClick = { onReplace(replaceQuery, replaceAll) }) {
+                    Text("Заменить")
+                }
+                Button(onClick = { onCancel() }) {
+                    Text("Отмена")
+                }
+            }
+            Row {
+                Checkbox(
+                    checked = replaceAll,
+                    onCheckedChange = { replaceAll = it }
+                )
+                Text("Заменить все")
+            }
+        }
+    }
+}
+
+@Composable
+fun HighlightSearchDialog(
+    onSearch: (String, Boolean) -> Unit,
+    onCancel: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var ignoreCase by remember { mutableStateOf(true) }
+
+    Dialog(onDismissRequest = { onCancel() }) {
+        Column {
+            Text("Введите текст для поиска:")
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it }
+            )
+            Row {
+                Button(onClick = { onSearch(searchQuery, ignoreCase) }) {
+                    Text("Поиск")
+                }
+                Button(onClick = { onCancel() }) {
+                    Text("Отмена")
+                }
+            }
+            Row {
+                Checkbox(
+                    checked = ignoreCase,
+                    onCheckedChange = { ignoreCase = it }
+                )
+                Text("Игнорировать регистр")
+            }
         }
     }
 }

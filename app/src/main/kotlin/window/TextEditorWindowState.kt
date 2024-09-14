@@ -41,6 +41,9 @@ class TextEditorWindowState(
     val openDialog = DialogState<Path?>()
     val saveDialog = DialogState<Path?>()
     val exitDialog = DialogState<DialogResult>()
+    val searchDialog = DialogState<Unit>()
+    val replaceDialog = DialogState<Unit>()
+    val searchHighlightDialog = DialogState<Unit>()
 
     // Используем канал для работы с нотификациями, Flow нужен для реактивного реагирования
     private var _notifications = Channel<TextEditorWindowNotification>(0)
@@ -110,6 +113,7 @@ class TextEditorWindowState(
     // Сохраняет текущий документ. Если путь не указан, открывает диалог для выбора пути
     suspend fun save(): Boolean {
         check(isInit)
+
         if (path == null) {
             val path = saveDialog.awaitResult()
             if (path != null) {
@@ -175,6 +179,82 @@ class TextEditorWindowState(
         return false
     }
 
+    var searchQuery by mutableStateOf("")
+    var highlightedIndices = listOf<Int>()
+    var searchResults by mutableStateOf(listOf<Int>())
+
+    // Состояние для показа информационного окна с количеством совпадений
+    var isMatchCountDialogVisible by mutableStateOf(false)
+
+    suspend fun searchAndReplace() {
+        searchDialog.awaitResult()
+    }
+
+    suspend fun replace() {
+        replaceDialog.awaitResult()
+    }
+
+    suspend fun searchAndHighlight() {
+        searchHighlightDialog.awaitResult()
+    }
+
+    // Метод поиска
+    fun search(query: String) {
+        searchQuery = query
+        searchResults = text.findAll(query)
+    }
+
+    // Метод замены
+    fun replace(replaceWith: String, replaceAll: Boolean) {
+        if (replaceAll) {
+            text = text.replace(searchQuery, replaceWith)
+        } else {
+            searchResults.firstOrNull()?.let { index ->
+                text = text.replaceRange(index, index + searchQuery.length, replaceWith)
+            }
+        }
+
+        searchResults = text.findAll(searchQuery) // Обновляем результаты поиска
+    }
+
+    // Метод поиска и подсветки совпадений
+    fun searchAndHighlight(query: String, ignoreCase: Boolean) {
+        searchQuery = query
+        val searchText = if (ignoreCase) text.lowercase() else text
+        val searchQueryToUse = if (ignoreCase) query.lowercase() else query
+
+        // Поиск всех совпадений
+        highlightedIndices = searchText.findAll(searchQueryToUse)
+    }
+
+    // Очищаем подсветку
+    fun clearHighlight() {
+        highlightedIndices = emptyList()
+    }
+
+    // Показать информационное окно с количеством совпадений
+    fun showMatchCountDialog() {
+        isMatchCountDialogVisible = true
+    }
+
+    // Скрыть информационное окно
+    fun dismissMatchCountDialog() {
+        isMatchCountDialogVisible = false
+    }
+
+    // Вспомогательная функция для поиска всех совпадений
+    private fun String.findAll(query: String): List<Int> {
+        val indices = mutableListOf<Int>()
+        var index = indexOf(query)
+
+        while (index >= 0) {
+            indices.add(index)
+            index = indexOf(query, index + 1)
+        }
+
+        return indices
+    }
+
     // Отправляет уведомление через состояние приложения
     fun sendNotification(notification: Notification) {
         application.sendNotification(notification)
@@ -189,10 +269,10 @@ private fun Path.launchSaving(text: String) = GlobalScope.launch {
 
 // Асинхронно записывает текст в файл, используя контекст ввода-вывода
 private suspend fun Path.writeTextAsync(text: String) = withContext(Dispatchers.IO) {
-    toFile().writeText(text)
+    toFile().writeText(text, Charsets.UTF_8)
 }
 
 // Асинхронно читает текст из файла, используя контекст ввода-вывода
 private suspend fun Path.readTextAsync() = withContext(Dispatchers.IO) {
-    toFile().readText()
+    toFile().readText(Charsets.UTF_8)
 }
