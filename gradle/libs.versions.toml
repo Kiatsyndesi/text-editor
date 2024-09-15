@@ -2,13 +2,12 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-guava = "33.2.1-jre"
+kotlin = "2.0.20"
+compose-plugin = "1.6.11"
 
 [libraries]
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 [plugins]
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version = "2.0.20" }
-jetbrainsCompose = { id = "org.jetbrains.compose", version = "1.6.10" }
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version = "2.0.20" }
-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.0.0" }
+jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
