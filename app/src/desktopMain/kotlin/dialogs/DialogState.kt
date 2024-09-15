@@ -25,6 +25,10 @@ class DialogState<T> {
      * @throws IllegalStateException если результат уже был установлен.
      */
     suspend fun awaitResult(): T {
+        if (onResult != null) {
+            throw IllegalStateException("Результат уже ожидается!")
+        }
+
         onResult = CompletableDeferred()
         val result = onResult!!.await()
         onResult = null
@@ -37,5 +41,11 @@ class DialogState<T> {
      * @param result Результат типа T.
      * @throws IllegalStateException если результат уже был установлен.
      */
-    fun onResult(result: T) = onResult!!.complete(result)
+    fun onResult(result: T) {
+        if (onResult == null) {
+            throw IllegalStateException("Результат не ожидался!")
+        }
+
+        onResult!!.complete(result)
+    }
 }

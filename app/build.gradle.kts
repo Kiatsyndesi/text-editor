@@ -35,6 +35,7 @@ kotlin {
             implementation("org.mockito:mockito-core:5.13.0")
             implementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.0")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
         }
     }
 }

@@ -32,7 +32,6 @@ class TextEditorWindowState(
     // Здесь используем технику Jetpack Compose - mutableStateOf.
     // Нужен для свойств, которые будут меняться, например путь к файлу, был изменен файл или нет
     var path by mutableStateOf(path)
-        private set
 
     var isChanged by mutableStateOf(false)
         private set
